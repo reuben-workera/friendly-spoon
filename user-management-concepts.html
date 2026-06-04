@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workera · User management — two user types</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --page-bg:       #F5F0E8;
+    --sidebar-bg:    #44113E;
+    --card-bg:       #FFFFFF;
+    --accent:        #943588;
+    --plum:          #621C59;
+    --nav-selected:  #44113E;
+    --nav-text:      #FCFAF8;
+    --text-primary:  #1A0F1E;
+    --text-muted:    #6B5878;
+    --border:        rgba(0,0,0,0.08);
+    --border-soft:   rgba(0,0,0,0.05);
+    --radius-sm:     8px;
+    --radius-lg:     16px;
+    --radius-pill:   100px;
+    --shadow-1:      0 1px 3px rgba(0,0,0,0.08);
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--page-bg);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    padding: 32px;
+    letter-spacing: -0.01em;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  /* Concept switcher */
+  .concept-switch { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .concept-switch button {
+    padding: 8px 16px; border-radius: var(--radius-pill); cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: -0.01em;
+    border: 1.5px solid var(--accent); background: transparent; color: var(--accent);
+    transition: all 0.15s;
+  }
+  .concept-switch button.active { background: var(--accent); color: #fff; }
+  .concept-note { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px; max-width: 760px; }
+
+  /* Panel header */
+  .panel-title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 4px; }
+  .panel-sub { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 20px; }
+
+  /* Tab row (Users / Groups style) */
+  .seg {
+    display: inline-flex; background: #fff; border: 1px solid var(--border);
+    border-radius: var(--radius-pill); padding: 3px; gap: 2px; margin-bottom: 18px;
+  }
+  .seg button {
+    padding: 6px 18px; border-radius: var(--radius-pill); border: none; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: -0.01em;
+    background: transparent; color: var(--text-muted); transition: all 0.15s;
+  }
+  .seg button.active { background: var(--nav-selected); color: var(--nav-text); }
+
+  /* Meters */
+  .meter-row { display: flex; gap: 40px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .meter { display: flex; align-items: center; gap: 14px; }
+  .meter-label { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+  .meter-bar { width: 130px; height: 7px; background: #E7DEEF; border-radius: var(--radius-pill); overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: var(--radius-pill); }
+  .meter-count { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+
+  /* Toolbar */
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .filter-btn, .search-box {
+    height: 40px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: #fff; display: flex; align-items: center; gap: 8px; padding: 0 14px;
+    font-size: 14px; color: var(--text-muted);
+  }
+  .search-box { flex: 1; max-width: 320px; }
+  .search-box input { border: none; outline: none; font-family: 'Inter', sans-serif; font-size: 14px; width: 100%; background: transparent; }
+  .add-btn {
+    margin-left: auto; height: 40px; padding: 0 18px; border: none; border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, #943588, #621C59, #4A1242); color: #fff;
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+
+  /* Table */
+  .table-card { background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow-1); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 12px 18px; text-align: left; font-size: 12px; font-weight: 600;
+    color: var(--text-muted); border-bottom: 1px solid var(--border-soft);
+    background: #FBF8F3;
+  }
+  td { padding: 14px 18px; font-size: 14px; color: var(--text-primary); border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .cell-name { font-weight: 600; font-size: 14px; }
+  .cell-sub { font-size: 12px; color: #9485A0; margin-top: 2px; }
+  .chk { width: 16px; height: 16px; border: 1.5px solid #C9BFD0; border-radius: 4px; display: inline-block; }
+
+  /* Pills */
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 11px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .pill-prog { background: #F0D9EC; color: #62185A; }
+  .pill-group { background: #E3F0FA; color: #1A4B7A; }
+  .pill-neutral { background: #F1EFE8; color: #5F5E5A; }
+  .pill-token { background: #E3F0FA; color: #1A4B7A; }
+  .pill-emp { background: #EEE7F4; color: #44113E; }
+  .pill-cand { background: #E3F0FA; color: #15466F; }
+  .pill-completed { background: #E8F5E9; color: #1B5E20; }
+  .pill-progress { background: #FFF8E1; color: #8B5000; }
+  .pill-invited { background: #F1EFE8; color: #5F5E5A; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+  .dot-emp { background: #943588; }
+  .dot-cand { background: #378ADD; }
+
+  /* Split header (concept 3) */
+  .split-header { display: flex; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 18px; background: #fff; }
+  .split-zone { flex: 1; padding: 18px 20px; }
+  .split-zone:first-child { border-right: 1px solid var(--border); }
+  .zone-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+  .zone-emp { color: #44113E; }
+  .zone-cand { color: #15466F; }
+  .zone-meters { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-end; }
+  .big-stat { font-size: 24px; font-weight: 800; font-family: 'Bricolage Grotesque', sans-serif; }
+  .big-stat-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="concept-switch">
+    <button id="b1" class="active" onclick="showConcept(1)">Concept 1 · Segmented tabs</button>
+    <button id="b2" onclick="showConcept(2)">Concept 2 · Unified + type column</button>
+    <button id="b3" onclick="showConcept(3)">Concept 3 · Split meter header</button>
+    <button id="b4" onclick="showConcept(4)">Concept 4 · Program-centric</button>
+    <button id="b5" onclick="showConcept(5)">Concept 5 · Role-scoped (C3)</button>
+  </div>
+
+  <!-- ===================== CONCEPT 1 ===================== -->
+  <div id="concept1">
+    <p class="concept-note">Two segmented tabs swap the entire view. The header billing meter and the table columns both change to match the user type, so the licensed and consumption populations never visually mix.</p>
+    <div class="panel-title">User management</div>
+    <div class="panel-sub">Manage employees and external candidates across your organization</div>
+
+    <div class="seg">
+      <button id="c1-emp" class="active" onclick="c1Tab('emp')">Employees · 38,843</button>
+      <button id="c1-cand" onclick="c1Tab('cand')">Candidates · 2,140</button>
+    </div>
+
+    <div id="c1-emp-view">
+      <div class="meter-row">
+        <div class="meter"><span class="meter-label">Starter licenses</span><div class="meter-bar"><div class="meter-fill" style="width:3%; background:#5DCAA5;"></div></div><span class="meter-count">3 of 100</span></div>
+        <div class="meter"><span class="meter-label">Pro licenses</span><div class="meter-bar"><div class="meter-fill" style="width:8%; background:#7F77DD;"></div></div><span class="meter-count">4 of 50</span></div>
+        <div class="meter"><span class="meter-label">Enterprise licenses</span><div class="meter-bar"><div class="meter-fill" style="width:97%; background:var(--plum);"></div></div><span class="meter-count">38,836 of 40,000</span></div>
+      </div>
+      <div class="toolbar">
+        <div class="filter-btn"><i class="fa-solid fa-filter"></i> Filters <i class="fa-solid fa-chevron-down" style="font-size:11px;"></i></div>
+        <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input placeholder="Search employees"></div>
+        <button class="add-btn"><i class="fa-solid fa-plus"></i> Add user</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th style="width:36px;"></th><th>Name</th><th>License</th><th>Department</th><th>Job title</th><th>Programs</th><th>Groups</th></tr></thead>
+          <tbody id="c1-emp-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="c1-cand-view" class="hidden">
+      <div class="meter-row">
+        <div class="meter"><span class="meter-label"><i class="fa-solid fa-coins" style="color:#943588; margin-right:4px;"></i>Assessment tokens</span><div class="meter-bar"><div class="meter-fill" style="width:62%; background:#378ADD;"></div></div><span class="meter-count">12,480 of 20,000 used</span></div>
+        <div class="meter"><span class="meter-label">Candidates assessed</span><span class="meter-count" style="font-size:20px; font-weight:800; font-family:'Bricolage Grotesque',sans-serif; color:var(--text-primary);">2,140</span></div>
+        <div class="meter"><span class="meter-label">Avg tokens / candidate</span><span class="meter-count" style="font-size:20px; font-weight:800; font-family:'Bricolage Grotesque',sans-serif; color:var(--text-primary);">1.4</span></div>
+      </div>
+      <div class="toolbar">
+        <div class="filter-btn"><i class="fa-solid fa-filter"></i> Filters <i class="fa-solid fa-chevron-down" style="font-size:11px;"></i></div>
+        <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input placeholder="Search candidates"></div>
+        <button class="add-btn"><i class="fa-solid fa-plus"></i> Invite candidate</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th style="width:36px;"></th><th>Name</th><th>Role applied for</th><th>Requisition</th><th>Tokens used</th><th>Status</th></tr></thead>
+          <tbody id="c1-cand-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CONCEPT 2 ===================== -->
+  <div id="concept2" class="hidden">
+    <p class="concept-note">One table for everyone. A "User type" column distinguishes employees from candidates, and the billing column renders a license tier or a token count depending on type. Filterable like any other column — lowest migration cost from today's screen, but the header meter has to carry both economic models at once.</p>
+    <div class="panel-title">User management</div>
+    <div class="panel-sub">Employees and external candidates in one view</div>
+
+    <div class="meter-row">
+      <div class="meter"><span class="meter-label">Pro licenses</span><div class="meter-bar"><div class="meter-fill" style="width:8%; background:#7F77DD;"></div></div><span class="meter-count">4 of 50</span></div>
+      <div class="meter"><span class="meter-label">Enterprise licenses</span><div class="meter-bar"><div class="meter-fill" style="width:97%; background:var(--plum);"></div></div><span class="meter-count">38,836 of 40,000</span></div>
+      <div class="meter"><span class="meter-label"><i class="fa-solid fa-coins" style="color:#943588; margin-right:4px;"></i>Assessment tokens</span><div class="meter-bar"><div class="meter-fill" style="width:62%; background:#378ADD;"></div></div><span class="meter-count">12,480 of 20,000</span></div>
+    </div>
+    <div class="toolbar">
+      <div class="filter-btn"><i class="fa-solid fa-filter"></i> Filters <i class="fa-solid fa-chevron-down" style="font-size:11px;"></i></div>
+      <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input placeholder="Search users"></div>
+      <button class="add-btn"><i class="fa-solid fa-plus"></i> Add user</button>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead><tr><th style="width:36px;"></th><th>Name</th><th>User type</th><th>Billing</th><th>Programs / status</th></tr></thead>
+        <tbody id="c2-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== CONCEPT 3 ===================== -->
+  <div id="concept3" class="hidden">
+    <p class="concept-note">Keeps a single list but splits the billing header into two labeled zones — licensed seats on the left, consumption on the right — so both economic models stay visible at a glance. A colored dot tags each row's type without spending a full column. Best when an admin wants one place to watch both budgets at once.</p>
+    <div class="panel-title">User management</div>
+    <div class="panel-sub">One directory, two billing models</div>
+
+    <div class="split-header">
+      <div class="split-zone">
+        <div class="zone-label zone-emp"><i class="fa-solid fa-id-badge"></i> Employees · licensed</div>
+        <div class="zone-meters">
+          <div class="meter"><span class="meter-label">Pro</span><div class="meter-bar" style="width:90px;"><div class="meter-fill" style="width:8%; background:#7F77DD;"></div></div><span class="meter-count">4/50</span></div>
+          <div class="meter"><span class="meter-label">Enterprise</span><div class="meter-bar" style="width:90px;"><div class="meter-fill" style="width:97%; background:var(--plum);"></div></div><span class="meter-count">38,836/40,000</span></div>
+        </div>
+      </div>
+      <div class="split-zone">
+        <div class="zone-label zone-cand"><i class="fa-solid fa-user-magnifying-glass"></i> Candidates · consumption</div>
+        <div class="zone-meters">
+          <div class="meter"><span class="meter-label"><i class="fa-solid fa-coins" style="color:#943588;"></i> Tokens</span><div class="meter-bar" style="width:90px;"><div class="meter-fill" style="width:62%; background:#378ADD;"></div></div><span class="meter-count">12,480/20,000</span></div>
+          <div><div class="big-stat-label">Assessed</div><div class="big-stat">2,140</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="filter-btn"><i class="fa-solid fa-filter"></i> Filters <i class="fa-solid fa-chevron-down" style="font-size:11px;"></i></div>
+      <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input placeholder="Search users"></div>
+      <button class="add-btn"><i class="fa-solid fa-plus"></i> Add user</button>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead><tr><th style="width:36px;"></th><th style="width:40px;"></th><th>Name</th><th>Billing</th><th>Detail</th></tr></thead>
+        <tbody id="c3-rows"></tbody>
+  </div>
+
+  <!-- ===================== CONCEPT 4 — Program-centric ===================== -->
+  <div id="concept4" class="hidden">
+    <p class="concept-note">Candidates aren't the object — programs are. Each row is an assessment program (what we'd call a campaign), showing how many external candidates were assessed and how many tokens that program consumed. This matches how a talent-acquisition lead actually thinks: in requisitions and budget, not in a roster of individual people. Drill into a program to see its candidate list.</p>
+    <div class="panel-title">Candidate assessment programs</div>
+    <div class="panel-sub">Token consumption by hiring program</div>
+
+    <div class="meter-row">
+      <div class="meter"><span class="meter-label"><i class="fa-solid fa-coins" style="color:#943588; margin-right:4px;"></i>Assessment tokens</span><div class="meter-bar"><div class="meter-fill" style="width:62%; background:#378ADD;"></div></div><span class="meter-count">12,480 of 20,000 used</span></div>
+      <div class="meter"><span class="meter-label">Active programs</span><span class="meter-count" style="font-size:20px; font-weight:800; font-family:'Bricolage Grotesque',sans-serif; color:var(--text-primary);">6</span></div>
+      <div class="meter"><span class="meter-label">Candidates assessed</span><span class="meter-count" style="font-size:20px; font-weight:800; font-family:'Bricolage Grotesque',sans-serif; color:var(--text-primary);">2,140</span></div>
+    </div>
+    <div class="toolbar">
+      <div class="filter-btn"><i class="fa-solid fa-filter"></i> Filters <i class="fa-solid fa-chevron-down" style="font-size:11px;"></i></div>
+      <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input placeholder="Search programs"></div>
+      <button class="add-btn"><i class="fa-solid fa-plus"></i> New program</button>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead><tr><th>Program</th><th>Role / requisition</th><th>Candidates assessed</th><th>Tokens consumed</th><th>Status</th><th style="width:40px;"></th></tr></thead>
+        <tbody id="c4-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== CONCEPT 5 — Role-scoped C3 ===================== -->
+  <div id="concept5" class="hidden">
+    <p class="concept-note">Concept 3's split-header layout, but filtered by who's viewing. Use the role switcher to see how permissions reshape the same screen: talent acquisition sees only candidates and token spend, talent management sees only employees and licenses, and a super admin sees both. This is a conversation starter for the team on the role model — not a final permission spec.</p>
+
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+      <span style="font-size:13px; color:var(--text-muted); font-weight:600;">View as</span>
+      <div class="seg" style="margin-bottom:0;">
+        <button id="r-ta" class="active" onclick="setRole('ta')">Talent acquisition</button>
+        <button id="r-tm" onclick="setRole('tm')">Talent management</button>
+        <button id="r-sa" onclick="setRole('sa')">Super admin</button>
+      </div>
+    </div>
+
+    <div class="panel-title" id="c5-title">Candidate management</div>
+    <div class="panel-sub" id="c5-sub">External candidates and token consumption</div>
+
+    <div class="split-header" id="c5-header"></div>
+    <div class="toolbar">
+      <div class="filter-btn"><i class="fa-solid fa-filter"></i> Filters <i class="fa-solid fa-chevron-down" style="font-size:11px;"></i></div>
+      <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input placeholder="Search" id="c5-search"></div>
+      <button class="add-btn" id="c5-add"><i class="fa-solid fa-plus"></i> Add</button>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead id="c5-thead"></thead>
+        <tbody id="c5-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const empData = [
+  ["Aaliyah Wuckert","aaliyah_wuckert@acme.test","Pro","Marketing","Marketing manager","12 Programs","1 Group"],
+  ["Aaliyah Kling","aaliyah_kling@acme.test","Enterprise","Marketing","Product Manager","9 Programs","—"],
+  ["Aaron Prosacco","employee_574@acme.test","Starter","Business development","Software Engineer","8 Programs","—"],
+  ["Bianca Lemke","bianca_lemke@acme.test","Enterprise","Sales","Account Executive","5 Programs","1 Group"],
+  ["Caleb O'Connell","caleb_oconnell@acme.test","Pro","Customer operations","Director, Finance","10 Programs","1 Group"],
+];
+const candData = [
+  ["Devon Reilly","devon.reilly@gmail.com","Senior Backend Engineer","REQ-4821","3","Completed","pill-completed"],
+  ["Priya Nair","priya.nair@outlook.com","Data Scientist II","REQ-4830","2","In progress","pill-progress"],
+  ["Marcus Bell","marcus.b@proton.me","Data Scientist II","REQ-4830","1","Invited","pill-invited"],
+  ["Sofia Alvarez","sofia.alvarez@gmail.com","Frontend Engineer","REQ-4815","2","Completed","pill-completed"],
+  ["Jordan Pierce","jpierce.dev@gmail.com","ML Engineer","REQ-4844","1","Invited","pill-invited"],
+];
+
+const programData = [
+  ["Backend Engineering Screen","Senior Backend Engineer · REQ-4821","412","589","Live","pill-completed"],
+  ["Data Science Hiring 2026","Data Scientist II · REQ-4830","688","1,204","Live","pill-completed"],
+  ["Frontend Engineering Screen","Frontend Engineer · REQ-4815","356","497","Live","pill-completed"],
+  ["ML Engineering Pipeline","ML Engineer · REQ-4844","291","438","Live","pill-completed"],
+  ["Platform Reliability Screen","SRE · REQ-4852","224","301","Draft","pill-progress"],
+  ["Security Engineering Screen","AppSec Engineer · REQ-4860","169","247","Live","pill-completed"],
+];
+
+function chk(){ return '<span class="chk"></span>'; }
+
+function renderEmpRows(tbody){
+  tbody.innerHTML = empData.map(r => `<tr>
+    <td>${chk()}</td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">${r[1]}</div></td>
+    <td><span class="pill pill-neutral">${r[2]}</span></td>
+    <td>${r[3]}</td>
+    <td>${r[4]}</td>
+    <td><span class="pill pill-prog">${r[5]}</span></td>
+    <td>${r[6] === "—" ? '<span style="color:#B4B2A9;">—</span>' : '<span class="pill pill-group">'+r[6]+'</span>'}</td>
+  </tr>`).join("");
+}
+function renderCandRows(tbody){
+  tbody.innerHTML = candData.map(r => `<tr>
+    <td>${chk()}</td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">${r[1]}</div></td>
+    <td>${r[2]}</td>
+    <td><span style="color:var(--text-muted); font-size:13px;">${r[3]}</span></td>
+    <td><span class="pill pill-token"><i class="fa-solid fa-coins"></i> ${r[4]}</span></td>
+    <td><span class="pill ${r[6]}">${r[5]}</span></td>
+  </tr>`).join("");
+}
+
+function renderC2(){
+  const tbody = document.getElementById("c2-rows");
+  const rows = [];
+  empData.forEach(r => rows.push(`<tr>
+    <td>${chk()}</td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">${r[1]}</div></td>
+    <td><span class="pill pill-emp"><i class="fa-solid fa-id-badge"></i> Employee</span></td>
+    <td><span class="pill pill-neutral">${r[2]} license</span></td>
+    <td><span class="pill pill-prog">${r[5]}</span></td>
+  </tr>`));
+  candData.forEach(r => rows.push(`<tr>
+    <td>${chk()}</td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">candidate · ${r[3]}</div></td>
+    <td><span class="pill pill-cand"><i class="fa-solid fa-user-magnifying-glass"></i> Candidate</span></td>
+    <td><span class="pill pill-token"><i class="fa-solid fa-coins"></i> ${r[4]} tokens</span></td>
+    <td><span class="pill ${r[6]}">${r[5]}</span></td>
+  </tr>`));
+  tbody.innerHTML = rows.join("");
+}
+
+function renderC3(){
+  const tbody = document.getElementById("c3-rows");
+  const rows = [];
+  empData.forEach(r => rows.push(`<tr>
+    <td>${chk()}</td>
+    <td style="text-align:center;"><span class="dot dot-emp" title="Employee"></span></td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">${r[1]}</div></td>
+    <td><span class="pill pill-neutral">${r[2]} license</span></td>
+    <td><span class="pill pill-prog">${r[5]}</span></td>
+  </tr>`));
+  candData.forEach(r => rows.push(`<tr>
+    <td>${chk()}</td>
+    <td style="text-align:center;"><span class="dot dot-cand" title="Candidate"></span></td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">candidate · ${r[3]}</div></td>
+    <td><span class="pill pill-token"><i class="fa-solid fa-coins"></i> ${r[4]} tokens</span></td>
+    <td><span class="pill ${r[6]}">${r[5]}</span></td>
+  </tr>`));
+  tbody.innerHTML = rows.join("");
+}
+
+function c1Tab(which){
+  document.getElementById("c1-emp").classList.toggle("active", which==='emp');
+  document.getElementById("c1-cand").classList.toggle("active", which==='cand');
+  document.getElementById("c1-emp-view").classList.toggle("hidden", which!=='emp');
+  document.getElementById("c1-cand-view").classList.toggle("hidden", which!=='cand');
+}
+
+function renderC4(){
+  const tbody = document.getElementById("c4-rows");
+  tbody.innerHTML = programData.map(r => `<tr>
+    <td><div class="cell-name">${r[0]}</div></td>
+    <td><span style="color:var(--text-muted); font-size:13px;">${r[1]}</span></td>
+    <td><i class="fa-solid fa-users" style="color:#9485A0; margin-right:6px;"></i>${r[2]}</td>
+    <td><span class="pill pill-token"><i class="fa-solid fa-coins"></i> ${r[3]}</span></td>
+    <td><span class="pill ${r[5]}">${r[4]}</span></td>
+    <td><i class="fa-solid fa-chevron-right" style="color:#C9BFD0;"></i></td>
+  </tr>`).join("");
+}
+
+// Concept 5 — role-scoped views of the split-header layout
+const empMetersHTML = `
+  <div class="meter"><span class="meter-label">Pro</span><div class="meter-bar" style="width:90px;"><div class="meter-fill" style="width:8%; background:#7F77DD;"></div></div><span class="meter-count">4/50</span></div>
+  <div class="meter"><span class="meter-label">Enterprise</span><div class="meter-bar" style="width:90px;"><div class="meter-fill" style="width:97%; background:var(--plum);"></div></div><span class="meter-count">38,836/40,000</span></div>`;
+const candMetersHTML = `
+  <div class="meter"><span class="meter-label"><i class="fa-solid fa-coins" style="color:#943588;"></i> Tokens</span><div class="meter-bar" style="width:90px;"><div class="meter-fill" style="width:62%; background:#378ADD;"></div></div><span class="meter-count">12,480/20,000</span></div>
+  <div><div class="big-stat-label">Assessed</div><div class="big-stat">2,140</div></div>`;
+
+const empZone = `<div class="split-zone"><div class="zone-label zone-emp"><i class="fa-solid fa-id-badge"></i> Employees · licensed</div><div class="zone-meters">${empMetersHTML}</div></div>`;
+const candZone = `<div class="split-zone"><div class="zone-label zone-cand"><i class="fa-solid fa-user-magnifying-glass"></i> Candidates · consumption</div><div class="zone-meters">${candMetersHTML}</div></div>`;
+
+const empThead = `<tr><th style="width:36px;"></th><th>Name</th><th>License</th><th>Department</th><th>Job title</th><th>Programs</th></tr>`;
+const candThead = `<tr><th style="width:36px;"></th><th>Name</th><th>Role applied for</th><th>Requisition</th><th>Tokens used</th><th>Status</th></tr>`;
+const bothThead = `<tr><th style="width:36px;"></th><th style="width:40px;"></th><th>Name</th><th>Billing</th><th>Detail</th></tr>`;
+
+function empRowsC5(){
+  return empData.map(r => `<tr>
+    <td>${chk()}</td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">${r[1]}</div></td>
+    <td><span class="pill pill-neutral">${r[2]}</span></td>
+    <td>${r[3]}</td><td>${r[4]}</td>
+    <td><span class="pill pill-prog">${r[5]}</span></td>
+  </tr>`).join("");
+}
+function candRowsC5(){
+  return candData.map(r => `<tr>
+    <td>${chk()}</td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">${r[1]}</div></td>
+    <td>${r[2]}</td>
+    <td><span style="color:var(--text-muted); font-size:13px;">${r[3]}</span></td>
+    <td><span class="pill pill-token"><i class="fa-solid fa-coins"></i> ${r[4]}</span></td>
+    <td><span class="pill ${r[6]}">${r[5]}</span></td>
+  </tr>`).join("");
+}
+function bothRowsC5(){
+  const rows = [];
+  empData.forEach(r => rows.push(`<tr>
+    <td>${chk()}</td><td style="text-align:center;"><span class="dot dot-emp"></span></td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">${r[1]}</div></td>
+    <td><span class="pill pill-neutral">${r[2]} license</span></td>
+    <td><span class="pill pill-prog">${r[5]}</span></td></tr>`));
+  candData.forEach(r => rows.push(`<tr>
+    <td>${chk()}</td><td style="text-align:center;"><span class="dot dot-cand"></span></td>
+    <td><div class="cell-name">${r[0]}</div><div class="cell-sub">candidate · ${r[3]}</div></td>
+    <td><span class="pill pill-token"><i class="fa-solid fa-coins"></i> ${r[4]} tokens</span></td>
+    <td><span class="pill ${r[6]}">${r[5]}</span></td></tr>`));
+  return rows.join("");
+}
+
+function setRole(role){
+  document.getElementById("r-ta").classList.toggle("active", role==='ta');
+  document.getElementById("r-tm").classList.toggle("active", role==='tm');
+  document.getElementById("r-sa").classList.toggle("active", role==='sa');
+  const title = document.getElementById("c5-title");
+  const sub = document.getElementById("c5-sub");
+  const header = document.getElementById("c5-header");
+  const thead = document.getElementById("c5-thead");
+  const rows = document.getElementById("c5-rows");
+  const search = document.getElementById("c5-search");
+  const add = document.getElementById("c5-add");
+
+  if(role==='ta'){
+    title.textContent = "Candidate management";
+    sub.textContent = "External candidates and token consumption";
+    header.innerHTML = candZone;
+    thead.innerHTML = candThead;
+    rows.innerHTML = candRowsC5();
+    search.placeholder = "Search candidates";
+    add.innerHTML = '<i class="fa-solid fa-plus"></i> Invite candidate';
+  } else if(role==='tm'){
+    title.textContent = "Employee management";
+    sub.textContent = "Licensed employees across your organization";
+    header.innerHTML = empZone;
+    thead.innerHTML = empThead;
+    rows.innerHTML = empRowsC5();
+    search.placeholder = "Search employees";
+    add.innerHTML = '<i class="fa-solid fa-plus"></i> Add user';
+  } else {
+    title.textContent = "User management";
+    sub.textContent = "All employees and candidates · full billing view";
+    header.innerHTML = empZone + candZone;
+    thead.innerHTML = bothThead;
+    rows.innerHTML = bothRowsC5();
+    search.placeholder = "Search users";
+    add.innerHTML = '<i class="fa-solid fa-plus"></i> Add user';
+  }
+}
+
+function showConcept(n){
+  [1,2,3,4,5].forEach(i => {
+    document.getElementById("concept"+i).classList.toggle("hidden", i!==n);
+    document.getElementById("b"+i).classList.toggle("active", i===n);
+  });
+}
+
+renderEmpRows(document.getElementById("c1-emp-rows"));
+renderCandRows(document.getElementById("c1-cand-rows"));
+renderC2();
+renderC3();
+renderC4();
+setRole('ta');
+</script>
+</body>
+</html>
